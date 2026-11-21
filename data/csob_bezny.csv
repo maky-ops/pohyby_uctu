@@ -1,0 +1,6 @@
+číslo účtu;datum zaúčtování;částka;měna;zůstatek;číslo protiúčtu;kód banky protiúčtu;jméno protistrany;adresa protistrany;konstantní symbol;variabilní symbol;specifický symbol;označení operace;název trvalého příkazu;vlastní poznámka;zpráva;kategorie;původní transakce;kurz;E2E identifikace;reference plátce;původní plátce;konečný příjemce;ID transakce
+11111111/0300;01.11.2026;38000,00;CZK;52000,00;99887766;0100;Firma s.r.o.;Praha 1;;112026;;Příchozí platba;;;Vyplata listopad;Příjmy;;;;;;;CSOB001
+11111111/0300;03.11.2026;-14500,00;CZK;37500,00;55667788;0800;Pronajímatel s.r.o.;Karlovy Vary;;202611;;Trvalý příkaz;Nájem bytu;;Najem bytu;Bydlení;;;;;;;CSOB002
+11111111/0300;05.11.2026;-6000,00;CZK;31500,00;22222222;0300;Jana Nováková;;;;;Odchozí platba;;;Prevod na sporeni CSOB;Převody;;;;;;;CSOB003
+11111111/0300;10.11.2026;-4000,00;CZK;27500,00;33333333;0600;Jana Nováková;;;;;Odchozí platba;;;Prevod na muj ucet Moneta;Převody;;;;;;;CSOB004
+11111111/0300;12.11.2026;-850,00;CZK;26650,00;11223344;0800;Lidl CR;Chodov;;;;Platba kartou;;;Nakup potravin;Jídlo;;;;;;;CSOB005

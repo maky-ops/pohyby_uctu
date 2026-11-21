@@ -1,0 +1,4 @@
+číslo účtu;datum zaúčtování;částka;měna;zůstatek;číslo protiúčtu;kód banky protiúčtu;jméno protistrany;adresa protistrany;konstantní symbol;variabilní symbol;specifický symbol;označení operace;název trvalého příkazu;vlastní poznámka;zpráva;kategorie;původní transakce;kurz;E2E identifikace;reference plátce;původní plátce;konečný příjemce;ID transakce
+22222222/0300;05.11.2026;6000,00;CZK;46000,00;11111111;0300;Jana Nováková;;;;;Příchozí platba;;;Prevod z bezneho CSOB;Převody;;;;;;;CSOB101
+22222222/0300;15.11.2026;145,50;CZK;46145,50;00000000;0300;ČSOB a.s.;;;;;Úrok;;;Kreditni urok;Úroky;;;;;;;CSOB102
+22222222/0300;20.11.2026;-2000,00;CZK;44145,50;33333333;0600;Jana Nováková;;;;;Odchozí platba;;;Prevod ze sporeni na Monetu;Převody;;;;;;;CSOB103
