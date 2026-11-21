@@ -77,3 +77,34 @@ class CsobCsvZdroj(CsvZdrojDat):
                 transakce_seznam.append(t)
 
         return transakce_seznam
+
+#přizpůsobení na Monetu
+class MonetaCsvZdroj(CsvZdrojDat):
+    def nacti_transakce(self) -> list[SurovaTransakce]:
+        transakce_seznam = []
+
+        with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
+            ctecky = csv.DictReader(soubor, delimiter=";")
+
+            for radek in ctecky:
+                protiucet = self._spoj_ucet(
+                    radek["Číslo protiúčtu"], radek["Banka protiúčtu"]
+                )
+                popis = (
+                    radek["Zpráva pro příjemce"].strip()
+                    or radek["Popis platby"].strip()
+                    or radek["Název účtu příjemce"].strip()
+                )
+
+                t = SurovaTransakce(
+                    id_transakce=radek["Bankovní reference"].strip(),
+                    muj_ucet=radek["Číslo účtu"].strip(),
+                    datum=radek["Odesláno"].strip(),
+                    castka=self._preved_castku(radek["Částka"]),
+                    mena=radek["Měna"].strip(),
+                    protiucet=protiucet,
+                    popis=popis,
+                )
+                transakce_seznam.append(t)
+
+        return transakce_seznam
