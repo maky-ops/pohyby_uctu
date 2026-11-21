@@ -28,3 +28,52 @@ class SurovaTransakce:
             f"Částka: {self.castka:>9.2f} {self.mena} | "
             f"Protiúčet: {self.protiucet:<14} | {self.popis}"
         )
+
+#načtení dat-nadřazená třída
+class ZdrojDat(ABC):
+    @abstractmethod
+    def nacti_transakce(self) -> list[SurovaTransakce]:
+        pass
+
+#načtení dat z csv soubroů
+class CsvZdrojDat(ZdrojDat, ABC):
+    def __init__(self, cesta_k_souboru: str):
+        self.cesta_k_souboru = cesta_k_souboru
+
+    def _preved_castku(self, text_castky: str) -> float:
+        ocisteno = text_castky.replace(" ", "").replace(",", ".")
+        return float(ocisteno)
+
+    def _spoj_ucet(self, cislo: str, kod_banky: str) -> str:
+        cislo = cislo.strip()
+        kod_banky = kod_banky.strip()
+        if cislo and kod_banky:
+            return f"{cislo}/{kod_banky}"
+        return cislo if cislo else "Neznámý účet"
+
+#přizpůsobení na ČSOB
+class CsobCsvZdroj(CsvZdrojDat):
+    def nacti_transakce(self) -> list[SurovaTransakce]:
+        transakce_seznam = []
+
+        with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
+            ctecky = csv.DictReader(soubor, delimiter=";")
+
+            for radek in ctecky:
+                protiucet = self._spoj_ucet(
+                    radek["číslo protiúčtu"], radek["kód banky protiúčtu"]
+                )
+                popis = radek["zpráva"].strip() or radek["jméno protistrany"].strip()
+
+                t = SurovaTransakce(
+                    id_transakce=radek["ID transakce"].strip(),
+                    muj_ucet=radek["číslo účtu"].strip(),
+                    datum=radek["datum zaúčtování"].strip(),
+                    castka=self._preved_castku(radek["částka"]),
+                    mena=radek["měna"].strip(),
+                    protiucet=protiucet,
+                    popis=popis,
+                )
+                transakce_seznam.append(t)
+
+        return transakce_seznam
