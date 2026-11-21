@@ -108,3 +108,23 @@ class MonetaCsvZdroj(CsvZdrojDat):
                 transakce_seznam.append(t)
 
         return transakce_seznam
+
+def main():
+    zdroje = [
+        CsobCsvZdroj("data/csob_bezny.csv"),
+        CsobCsvZdroj("data/csob_sporici.csv"),
+        MonetaCsvZdroj("data/moneta_bezny.csv"),
+    ]
+
+    vsechny_transakce = []
+    for zdroj in zdroje:
+        nactene = zdroj.nacti_transakce()
+        vsechny_transakce.extend(nactene)
+
+    print(f"Celkem načteno transakcí: {len(vsechny_transakce)}\n")
+    for t in vsechny_transakce:
+        print(t)
+
+
+if __name__ == "__main__":
+    main()
