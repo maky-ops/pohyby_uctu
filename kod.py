@@ -109,6 +109,59 @@ class MonetaCsvZdroj(CsvZdrojDat):
 
         return transakce_seznam
 
+class Transakce:
+    def __init__(self, surova: SurovaTransakce):
+        self.id_transakce = surova.id_transakce
+        self.muj_ucet = surova.muj_ucet
+        self.datum = surova.datum
+        self.castka = surova.castka
+        self.mena = surova.mena
+        self.protiucet = surova.protiucet
+        self.popis = surova.popis
+
+    def typ_operace(self) -> str:
+        return "NEURČENO"
+
+    def __str__(self) -> str:
+        return (
+            f"[{self.typ_operace():^6}] [{self.datum.strftime('%d.%m.%Y')}] "
+            f"Účet: {self.muj_ucet} | Částka: {self.castka:>9.2f} {self.mena} | "
+            f"Protiúčet: {self.protiucet:<14} | {self.popis}"
+        )
+
+
+class Prevod(Transakce):
+    def typ_operace(self) -> str:
+        return "PŘEVOD"
+
+
+class Prijem(Transakce):
+    def typ_operace(self) -> str:
+        return "PŘÍJEM"
+
+
+class Vydaj(Transakce):
+    def typ_operace(self) -> str:
+        return "VÝDAJ"
+
+
+class TridicTransakci:
+    def __init__(self, surove_transakce: list[SurovaTransakce]):
+        self.surove_transakce = surove_transakce
+        self.moje_ucty = {t.muj_ucet for t in surove_transakce}
+
+    def roztrid(self) -> list[Transakce]:
+        vysledek = []
+        for t in self.surove_transakce:
+            if t.protiucet in self.moje_ucty:
+                vysledek.append(Prevod(t))
+            elif t.castka > 0:
+                vysledek.append(Prijem(t))
+            else:
+                vysledek.append(Vydaj(t))
+        return vysledek
+
+
 def main():
     zdroje = [
         CsobCsvZdroj("data/csob_bezny.csv"),
@@ -116,13 +169,14 @@ def main():
         MonetaCsvZdroj("data/moneta_bezny.csv"),
     ]
 
-    vsechny_transakce = []
+    surove = []
     for zdroj in zdroje:
-        nactene = zdroj.nacti_transakce()
-        vsechny_transakce.extend(nactene)
+        surove.extend(zdroj.nacti_transakce())
 
-    print(f"Celkem načteno transakcí: {len(vsechny_transakce)}\n")
-    for t in vsechny_transakce:
+    tridic = TridicTransakci(surove)
+    roztridene = tridic.roztrid()
+
+    for t in roztridene:
         print(t)
 
 
