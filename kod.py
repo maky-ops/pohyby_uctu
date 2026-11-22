@@ -141,9 +141,15 @@ class Prijem(Transakce):
 
 
 class Vydaj(Transakce):
+    def __init__(self, surova: SurovaTransakce):
+        super().__init__(surova)        #kategorizace výdajů
+        self.kategorie = "Nezařazeno"
+
     def typ_operace(self) -> str:
         return "VÝDAJ"
 
+    def __str__(self) -> str:
+        return f"{super().__str__()} | Kategorie: {self.kategorie}"
 
 class TridicTransakci:
     def __init__(self, surove_transakce: list[SurovaTransakce]):
@@ -161,6 +167,28 @@ class TridicTransakci:
                 vysledek.append(Vydaj(t))
         return vysledek
 
+class kategorizace(ABC):
+    @abstractmethod
+    def urci_kategorii(self, vydaj: Vydaj) -> str:
+        pass
+#
+#DOPLNIT VÍCE KLÍČOVÝCH SLOV A KATEGORIÍÍÍ!!
+#
+class KlicovaSlovaKategorizace(kategorizace):
+    def __init__(self):
+        self.pravidla = {
+            "Potraviny": ["albert", "lidl"],
+            "Bydlení": ["nájem", "najem", "elektřina", "voda"],
+            "Nákupy": ["alza", "elektroniky", "oblečení"],
+        }
+
+    def urci_kategorii(self, vydaj: Vydaj) -> str:
+        text = vydaj.popis.lower()
+        for kategorie, klicova_slova in self.pravidla.items():
+            for slovo in klicova_slova:
+                if slovo in text:
+                    return kategorie
+        return "Ostatní"
 
 def main():
     zdroje = [
@@ -174,11 +202,15 @@ def main():
         surove.extend(zdroj.nacti_transakce())
 
     tridic = TridicTransakci(surove)
-    roztridene = tridic.roztrid()
+    roztriedene = tridic.roztrid()
 
-    for t in roztridene:
+    kategorizace = KlicovaSlovaKategorizace()
+    for t in roztriedene:
+        if isinstance(t, Vydaj):
+            t.kategorie = kategorizace.urci_kategorii(t)
+
+    for t in roztriedene:
         print(t)
-
 
 if __name__ == "__main__":
     main()
