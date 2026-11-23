@@ -231,6 +231,30 @@ class Vizualizator:
         plt.tight_layout()
         plt.show()
 
+    def vykresli_kategorie_vydaju(self):
+        vydaje_kategorie = {}
+
+        for t in self.transakce:
+            if isinstance(t, Vydaj):
+                vydaje_kategorie[t.kategorie] = (
+                    vydaje_kategorie.get(t.kategorie, 0.0) + abs(t.castka)
+                )
+
+        kategorie = list(vydaje_kategorie.keys())
+        hodnoty = list(vydaje_kategorie.values())
+
+        plt.figure(figsize=(8, 8))
+        plt.pie(
+            hodnoty,
+            labels=kategorie,
+            autopct="%1.1f%%",
+            startangle=90,
+        )
+        plt.title("Rozložení výdajů podle kategorií")
+        plt.axis("equal")
+        plt.tight_layout()
+        plt.show()
+
 
 def main():
     zdroje = [
@@ -244,18 +268,19 @@ def main():
         surove.extend(zdroj.nacti_transakce())
 
     tridic = TridicTransakci(surove)
-    roztriedene = tridic.roztrid()
+    roztridene = tridic.roztrid()
 
     kategorizator = KlicovaSlovaKategorizace()
-    for t in roztriedene:
+    for t in roztridene:
         if isinstance(t, Vydaj):
             t.kategorie = kategorizator.urci_kategorii(t)
 
-    for t in roztriedene:
+    for t in roztridene:
         print(t)
 
-    grafy = Vizualizator(roztriedene)
+    grafy = Vizualizator(roztridene)
     grafy.vykresli_mesicni_prehled()
+    grafy.vykresli_kategorie_vydaju()
 
 
 if __name__ == "__main__":
