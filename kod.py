@@ -229,7 +229,6 @@ class Vizualizator:
         plt.legend()
         plt.grid(axis="y", linestyle="--", alpha=0.5)
         plt.tight_layout()
-        plt.show()
 
     def vykresli_kategorie_vydaju(self):
         vydaje_kategorie = {}
@@ -253,8 +252,11 @@ class Vizualizator:
         plt.title("Rozložení výdajů podle kategorií")
         plt.axis("equal")
         plt.tight_layout()
+        
+    def zobraz_grafy(self):
+        self.vykresli_mesicni_prehled()
+        self.vykresli_kategorie_vydaju()
         plt.show()
-
 
 def main():
     zdroje = [
@@ -279,9 +281,7 @@ def main():
         print(t)
 
     grafy = Vizualizator(roztridene)
-    grafy.vykresli_mesicni_prehled()
-    grafy.vykresli_kategorie_vydaju()
-
+    grafy.zobraz_grafy()
 
 if __name__ == "__main__":
     main()
