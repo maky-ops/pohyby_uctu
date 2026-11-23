@@ -1,4 +1,5 @@
 import csv
+import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -189,6 +190,47 @@ class KlicovaSlovaKategorizace(kategorizace):
                 if slovo in text:
                     return kategorie
         return "Ostatní"
+class Vizualizator:
+    def __init__(self, transakce: list[Transakce]):
+        self.transakce = transakce
+
+    def vykresli_mesicni_prehled(self):
+        data_po_mesicich = {}
+
+        for t in self.transakce:
+            mesic = t.datum.strftime("%Y-%m")
+            if mesic not in data_po_mesicich:
+                data_po_mesicich[mesic] = {"prijmy": 0.0, "vydaje": 0.0, "prevody": 0.0}
+
+            if isinstance(t, Prijem):
+                data_po_mesicich[mesic]["prijmy"] += t.castka
+            elif isinstance(t, Vydaj):
+                data_po_mesicich[mesic]["vydaje"] += abs(t.castka)
+            elif isinstance(t, Prevod) and t.castka > 0:
+                data_po_mesicich[mesic]["prevody"] += t.castka
+
+        mesice = sorted(data_po_mesicich.keys())
+        prijmy = [data_po_mesicich[m]["prijmy"] for m in mesice]
+        vydaje = [data_po_mesicich[m]["vydaje"] for m in mesice]
+        prevody = [data_po_mesicich[m]["prevody"] for m in mesice]
+
+        x = range(len(mesice))
+        sirka = 0.25
+
+        plt.figure(figsize=(10, 6))
+        plt.bar([i - sirka for i in x], prijmy, width=sirka, label="Příjmy", color="#2ecc71")
+        plt.bar(x, vydaje, width=sirka, label="Výdaje", color="#e74c3c")
+        plt.bar([i + sirka for i in x], prevody, width=sirka, label="Převody", color="#3498db")
+
+        plt.xlabel("Měsíc")
+        plt.ylabel("Částka (CZK)")
+        plt.title("Měsíční přehled příjmů, výdajů a převodů")
+        plt.xticks(x, mesice)
+        plt.legend()
+        plt.grid(axis="y", linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
 
 def main():
     zdroje = [
@@ -204,13 +246,17 @@ def main():
     tridic = TridicTransakci(surove)
     roztriedene = tridic.roztrid()
 
-    kategorizace = KlicovaSlovaKategorizace()
+    kategorizator = KlicovaSlovaKategorizace()
     for t in roztriedene:
         if isinstance(t, Vydaj):
-            t.kategorie = kategorizace.urci_kategorii(t)
+            t.kategorie = kategorizator.urci_kategorii(t)
 
     for t in roztriedene:
         print(t)
+
+    grafy = Vizualizator(roztriedene)
+    grafy.vykresli_mesicni_prehled()
+
 
 if __name__ == "__main__":
     main()
