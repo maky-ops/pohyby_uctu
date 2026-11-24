@@ -172,15 +172,21 @@ class kategorizace(ABC):
     @abstractmethod
     def urci_kategorii(self, vydaj: Vydaj) -> str:
         pass
-#
-#DOPLNIT VÍCE KLÍČOVÝCH SLOV A KATEGORIÍÍÍ!!
-#
+
 class KlicovaSlovaKategorizace(kategorizace):
     def __init__(self):
         self.pravidla = {
-            "Potraviny": ["albert", "lidl"],
-            "Bydlení": ["nájem", "najem", "elektřina", "voda"],
-            "Nákupy": ["alza", "elektroniky", "oblečení"],
+            "Potraviny": ["albert", "lidl","globus","tesco","penny","billa","potraviny","supermarket"],
+            "Restaurace":["pizza", "restaurace","hospoda","hospudka","obcerstveni","občerstvení",
+            "mcdonalds","kfc","popeyes","burger king","bar","bistro","kavárna","qerko","restaurant"],
+            "Bydlení": ["nájem", "najem", "elektřina", "voda","suz.cvut.cz"],
+            "Oblečení a Obuv": ["oblečení","newyorker","sinsay"],
+            "Další nákupy":["alza", "elektroniky","temu","knihobot","luxor","knihkupectvi",
+            "knihkupectvi","pepco","datart","decathlon","optik","ikea","jysk"],
+            "Drogerie":["dm","teta","rossmann","drogerie"],
+            "Doprava a Tankování": ["flix","regiojet","tank","ono","parkoviště","parkoviste"],
+            "Zábava": ["ticketmaster","ticketportal","canva","nfctron"],
+            "Krása a Zdraví": ["max","lékárna","notino"],
         }
 
     def urci_kategorii(self, vydaj: Vydaj) -> str:
@@ -260,9 +266,9 @@ class Vizualizator:
 
 def main():
     zdroje = [
-        CsobCsvZdroj("data/csob_bezny.csv"),
-        CsobCsvZdroj("data/csob_sporici.csv"),
-        MonetaCsvZdroj("data/moneta_bezny.csv"),
+        CsobCsvZdroj("data/csob_bezny1.csv"),
+        CsobCsvZdroj("data/csob_sporici1.csv"),
+        MonetaCsvZdroj("data/moneta_bezny1.csv"),
     ]
 
     surove = []
