@@ -180,11 +180,11 @@ class KlicovaSlovaKategorizace(kategorizace):
             "Restaurace":["pizza", "restaurace","hospoda","hospudka","obcerstveni","občerstvení",
             "mcdonalds","kfc","popeyes","burger king","bar","bistro","kavárna","qerko","restaurant"],
             "Bydlení": ["nájem", "najem", "elektřina", "voda","suz.cvut.cz"],
-            "Oblečení a Obuv": ["oblečení","newyorker","sinsay"],
+            "Oblečení a Obuv": ["oblečení","newyorker","sinsay","h&m","deichmann","ccc","takko"],
             "Další nákupy":["alza", "elektroniky","temu","knihobot","luxor","knihkupectvi",
             "knihkupectvi","pepco","datart","decathlon","optik","ikea","jysk"],
             "Drogerie":["dm","teta","rossmann","drogerie"],
-            "Doprava a Tankování": ["flix","regiojet","tank","ono","parkoviště","parkoviste"],
+            "Doprava a Tankování": ["flix","regiojet","tank","ono","parkoviště","parkoviste","benzina"],
             "Zábava": ["ticketmaster","ticketportal","canva","nfctron"],
             "Krása a Zdraví": ["max","lékárna","notino"],
         }
@@ -223,16 +223,26 @@ class Vizualizator:
         x = range(len(mesice))
         sirka = 0.25
 
-        plt.figure(figsize=(10, 6))
-        plt.bar([i - sirka for i in x], prijmy, width=sirka, label="Příjmy", color="#2ecc71")
-        plt.bar(x, vydaje, width=sirka, label="Výdaje", color="#e74c3c")
-        plt.bar([i + sirka for i in x], prevody, width=sirka, label="Převody", color="#3498db")
+        plt.figure(figsize=(11, 6))
+        sloupce_prijmy = plt.bar(
+            [i - sirka for i in x], prijmy, width=sirka, label="Příjmy", color="#2ecc71"
+        )
+        sloupce_vydaje = plt.bar(
+            x, vydaje, width=sirka, label="Výdaje", color="#e74c3c"
+        )
+        sloupce_prevody = plt.bar(
+            [i + sirka for i in x], prevody, width=sirka, label="Převody", color="#3498db"
+        )
 
-        plt.xlabel("Měsíc")
-        plt.ylabel("Částka (CZK)")
+        plt.bar_label(sloupce_prijmy, fmt="%.0f Kč", padding=3, fontsize=8)
+        plt.bar_label(sloupce_vydaje, fmt="%.0f Kč", padding=3, fontsize=8)
+        plt.bar_label(sloupce_prevody, fmt="%.0f Kč", padding=3, fontsize=8)
+
+        plt.ylabel("Částka (Kč)")
         plt.title("Měsíční přehled příjmů, výdajů a převodů")
         plt.xticks(x, mesice)
-        plt.legend()
+        plt.margins(y=0.15)
+        plt.legend(frameon=False)
         plt.grid(axis="y", linestyle="--", alpha=0.5)
         plt.tight_layout()
 
@@ -245,20 +255,41 @@ class Vizualizator:
                     vydaje_kategorie.get(t.kategorie, 0.0) + abs(t.castka)
                 )
 
-        kategorie = list(vydaje_kategorie.keys())
-        hodnoty = list(vydaje_kategorie.values())
+        serazene = sorted(vydaje_kategorie.items(), key=lambda x: x[1], reverse=True)
+        hodnoty = [polozka[1] for polozka in serazene]
+        celkem = sum(hodnoty)
 
-        plt.figure(figsize=(8, 8))
+        legenda_popisky = [
+            f"{kat} ({hodnota:.0f} Kč, {hodnota / celkem * 100:.1f} %)"
+            for kat, hodnota in serazene
+        ]
+
+        def formatuj_popisek(procento):
+            if procento < 4:
+                return ""
+            castka = procento * celkem / 100.0
+            return f"{castka:.0f} Kč\n({procento:.1f}%)"
+
+        plt.figure(figsize=(11, 7))
         plt.pie(
             hodnoty,
-            labels=kategorie,
-            autopct="%1.1f%%",
+            autopct=formatuj_popisek,
             startangle=90,
+            counterclock=False,
+            pctdistance=0.75,
+            textprops={"fontsize": 9},
+        )
+        plt.legend(
+            legenda_popisky,
+            title="Kategorie",
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            frameon=False,
         )
         plt.title("Rozložení výdajů podle kategorií")
         plt.axis("equal")
         plt.tight_layout()
-        
+
     def zobraz_grafy(self):
         self.vykresli_mesicni_prehled()
         self.vykresli_kategorie_vydaju()
@@ -269,6 +300,7 @@ def main():
         CsobCsvZdroj("data/csob_bezny1.csv"),
         CsobCsvZdroj("data/csob_sporici1.csv"),
         MonetaCsvZdroj("data/moneta_bezny1.csv"),
+        MonetaCsvZdroj("data/moneta_sporici1.csv"),
     ]
 
     surove = []
