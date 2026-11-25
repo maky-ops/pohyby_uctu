@@ -388,6 +388,7 @@ def main():
 
     tridic = TridicTransakci(surove)
     roztridene = tridic.roztrid()
+    roztridene.sort(key=lambda t: t.datum)
     
     kategorizator = KlicovaSlovaKategorizace()
     for t in roztridene:
