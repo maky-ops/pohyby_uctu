@@ -341,6 +341,38 @@ class Vizualizator:
         self.vykresli_mesicni_prehled()
         self.vykresli_kategorie_vydaju()
         plt.show()
+class ExportCsv:
+    def __init__(self, transakce: list[Transakce]):
+        self.transakce = transakce
+
+    def exportuj(self, cesta_k_souboru: str = "prehled_transakci.csv"):
+        hlavicka = [
+            "Typ operace",
+            "Datum",
+            "Můj účet",
+            "Částka",
+            "Měna",
+            "Protiúčet",
+            "Kategorie",
+            "Popis",
+        ]
+
+        with open(cesta_k_souboru, mode="w", newline="", encoding="utf-8-sig") as soubor:
+            zapisovac = csv.writer(soubor, delimiter=";")
+            zapisovac.writerow(hlavicka)
+
+            for t in self.transakce:
+                kategorie = t.kategorie if isinstance(t, Vydaj) else "-"
+                zapisovac.writerow([
+                    t.typ_operace(),
+                    t.datum.strftime("%d.%m.%Y"),
+                    t.muj_ucet,
+                    f"{t.castka:.2f}".replace(".", ","),
+                    t.mena,
+                    t.protiucet,
+                    kategorie,
+                    t.popis,
+                ])
 
 def main():
     zdroje = [
@@ -356,7 +388,7 @@ def main():
 
     tridic = TridicTransakci(surove)
     roztridene = tridic.roztrid()
-
+    
     kategorizator = KlicovaSlovaKategorizace()
     for t in roztridene:
         if isinstance(t, Vydaj):
@@ -387,6 +419,18 @@ def main():
 
     grafy = Vizualizator(roztridene)
     grafy.zobraz_grafy()
+
+    volba_export = input("Chcete výsledky exportovat do CSV souboru? (a/n): ").strip().lower()
+    if volba_export == "a":
+        nazev_souboru = input("Zadejte název souboru (Enter pro 'prehled_transakci.csv'): ").strip()
+        if not nazev_souboru:
+            nazev_souboru = "prehled_transakci.csv"
+        elif not nazev_souboru.endswith(".csv"):
+            nazev_souboru += ".csv"
+
+        exporter = ExportCsv(roztridene)
+        exporter.exportuj(nazev_souboru)
+        print(f"Data byla úspěšně uložena do souboru '{nazev_souboru}'.")
 
 if __name__ == "__main__":
     main()
