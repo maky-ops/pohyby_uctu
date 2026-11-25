@@ -1,5 +1,8 @@
 import csv
 import matplotlib.pyplot as plt
+import requests
+import json
+from google import genai
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -176,7 +179,7 @@ class kategorizace(ABC):
 class KlicovaSlovaKategorizace(kategorizace):
     def __init__(self):
         self.pravidla = {
-            "Potraviny": ["albert", "lidl","globus","tesco","penny","billa","potraviny","supermarket"],
+            "Potraviny": ["albert", "lidl","globus","penny","billa","potraviny","supermarket"],
             "Restaurace":["pizza", "restaurace","hospoda","hospudka","obcerstveni","občerstvení",
             "mcdonalds","kfc","popeyes","burger king","bar","bistro","kavárna","qerko","restaurant"],
             "Bydlení": ["nájem", "najem", "elektřina", "voda","suz.cvut.cz"],
@@ -196,6 +199,50 @@ class KlicovaSlovaKategorizace(kategorizace):
                 if slovo in text:
                     return kategorie
         return "Ostatní"
+
+class GeminiKategorizace(kategorizace):
+    def __init__(self, api_key: str, povolene_kategorie: list[str]):
+        self.client = genai.Client(api_key=api_key)
+        self.povolene_kategorie = povolene_kategorie
+
+    def urci_kategorii(self, vydaj: Vydaj) -> str:
+        vysledky = self.urci_kategorie_hromadne([vydaj])
+        return vysledky[0]
+
+    def urci_kategorie_hromadne(self, vydaje: list[Vydaj]) -> list[str]:
+        seznam_kategorii = ", ".join(self.povolene_kategorie)
+        polozky_text = "\n".join(
+            f"{i}: {v.popis}" for i, v in enumerate(vydaje)
+        )
+
+        prompt = (
+            f"Zařaď následující bankovní výdaje do jedné z těchto kategorií: {seznam_kategorii}. "
+            f"Pokud do žádné jednoznačně nepatří, použij 'Ostatní'.\n"
+            f"Výdaje:\n{polozky_text}\n\n"
+            f"Odpověz POUZE jako čistý JSON slovník, kde klíč je číslo řádku (jako string) "
+            f"a hodnota je přesný název kategorie. Nepiš žádný další text ani markdown."
+        )
+
+        try:
+            odpoved = self.client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=prompt,
+            )
+            print("Surová odpověď z Gemini:", odpoved.text)
+            cisty_json = odpoved.text.strip().removeprefix("```json").removesuffix("```").strip()
+            slovnik_odpovedi = json.loads(cisty_json)
+        except Exception as e:
+            print(f"Upozornění: Gemini API selhalo ({e}). Položky zůstávají v Ostatní.")
+            return ["Ostatní"] * len(vydaje)
+
+        mapa_kategorii = {k.lower(): k for k in self.povolene_kategorie}
+
+        vysledky = []
+        for i in range(len(vydaje)):
+            kat = str(slovnik_odpovedi.get(str(i), "Ostatní")).strip().lower()
+            vysledky.append(mapa_kategorii.get(kat, "Ostatní"))
+        return vysledky
+
 class Vizualizator:
     def __init__(self, transakce: list[Transakce]):
         self.transakce = transakce
@@ -300,7 +347,7 @@ def main():
         CsobCsvZdroj("data/csob_bezny1.csv"),
         CsobCsvZdroj("data/csob_sporici1.csv"),
         MonetaCsvZdroj("data/moneta_bezny1.csv"),
-        MonetaCsvZdroj("data/moneta_sporici1.csv"),
+        MonetaCsvZdroj("data/moneta_sporici1.csv")
     ]
 
     surove = []
@@ -314,6 +361,26 @@ def main():
     for t in roztridene:
         if isinstance(t, Vydaj):
             t.kategorie = kategorizator.urci_kategorii(t)
+
+    ostatni_vydaje = [
+        t for t in roztridene if isinstance(t, Vydaj) and t.kategorie == "Ostatní"
+    ]
+
+    if ostatni_vydaje:
+        volba_ai = input(
+            f"Nalezeno {len(ostatni_vydaje)} výdajů v kategorii Ostatní. Použít Gemini AI pro jejich zařazení? (a/n): "
+        ).strip().lower()
+
+        if volba_ai == "a":
+            api_key = input("Zadejte Gemini API klíč: ").strip()
+            print("Odesílám výdaje ke kategorizaci do Gemini AI...")
+            povolene = list(kategorizator.pravidla.keys())
+            ai_kategorizator = GeminiKategorizace(api_key, povolene)
+
+            nove_kategorie = ai_kategorizator.urci_kategorie_hromadne(ostatni_vydaje)
+            for vydaj, kat in zip(ostatni_vydaje, nove_kategorie):
+                vydaj.kategorie = kat
+            print("Kategorizace pomocí AI dokončena.\n")
 
     for t in roztridene:
         print(t)
