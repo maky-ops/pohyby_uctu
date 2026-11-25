@@ -33,14 +33,12 @@ class SurovaTransakce:
             f"Protiúčet: {self.protiucet:<14} | {self.popis}"
         )
 
-#načtení dat-nadřazená třída
-class ZdrojDat(ABC):
+
+#načtení dat z csv soubroů
+class CsvZdrojDat(ABC):
     @abstractmethod
     def nacti_transakce(self) -> list[SurovaTransakce]:
         pass
-
-#načtení dat z csv soubroů
-class CsvZdrojDat(ZdrojDat, ABC):
     def __init__(self, cesta_k_souboru: str):
         self.cesta_k_souboru = cesta_k_souboru
 
@@ -179,7 +177,7 @@ class kategorizace(ABC):
 class KlicovaSlovaKategorizace(kategorizace):
     def __init__(self):
         self.pravidla = {
-            "Potraviny": ["albert", "lidl","globus","penny","billa","potraviny","supermarket"],
+            "Potraviny": ["albert", "lidl","globus","tesco","penny","billa","potraviny","supermarket"],
             "Restaurace":["pizza", "restaurace","hospoda","hospudka","obcerstveni","občerstvení",
             "mcdonalds","kfc","popeyes","burger king","bar","bistro","kavárna","qerko","restaurant"],
             "Bydlení": ["nájem", "najem", "elektřina", "voda","suz.cvut.cz"],
@@ -389,7 +387,7 @@ def main():
     tridic = TridicTransakci(surove)
     roztridene = tridic.roztrid()
     roztridene.sort(key=lambda t: t.datum)
-    
+
     kategorizator = KlicovaSlovaKategorizace()
     for t in roztridene:
         if isinstance(t, Vydaj):
@@ -418,9 +416,6 @@ def main():
     for t in roztridene:
         print(t)
 
-    grafy = Vizualizator(roztridene)
-    grafy.zobraz_grafy()
-
     volba_export = input("Chcete výsledky exportovat do CSV souboru? (a/n): ").strip().lower()
     if volba_export == "a":
         nazev_souboru = input("Zadejte název souboru (Enter pro 'prehled_transakci.csv'): ").strip()
@@ -432,6 +427,9 @@ def main():
         exporter = ExportCsv(roztridene)
         exporter.exportuj(nazev_souboru)
         print(f"Data byla úspěšně uložena do souboru '{nazev_souboru}'.")
+
+    grafy = Vizualizator(roztridene)
+    grafy.zobraz_grafy()
 
 if __name__ == "__main__":
     main()
