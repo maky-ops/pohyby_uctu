@@ -344,46 +344,33 @@ class Vizualizator:
         self.vykresli_mesicni_prehled()
         self.vykresli_kategorie_vydaju()
         plt.show()
-class ExportCsv:
-    def __init__(self, transakce: list[Transakce]):
-        self.transakce = transakce
 
-    def exportuj(self, cesta_k_souboru: str = "prehled_transakci.csv"):
-        hlavicka = [
-            "Typ operace",
-            "Datum",
-            "Můj účet",
-            "Částka",
-            "Měna",
-            "Protiúčet",
-            "Kategorie",
-            "Popis",
-        ]
+def exportuj_csv(transakce: list[Transakce], cesta_k_souboru: str = "prehled_transakci.csv") -> None:
+    hlavicka = ["Typ operace","Datum","Můj účet","Částka","Měna","Protiúčet","Kategorie","Popis"]
 
-        with open(cesta_k_souboru, mode="w", newline="", encoding="utf-8-sig") as soubor:
-            zapisovac = csv.writer(soubor, delimiter=";")
-            zapisovac.writerow(hlavicka)
+    with open(cesta_k_souboru, mode="w", newline="", encoding="utf-8-sig") as soubor:
+        zapisovac = csv.writer(soubor, delimiter=";")
+        zapisovac.writerow(hlavicka)
 
-            for t in self.transakce:
-                kategorie = t.kategorie if isinstance(t, Vydaj) else "-"
-                zapisovac.writerow([
-                    t.typ_operace(),
-                    t.datum.strftime("%d.%m.%Y"),
-                    t.muj_ucet,
-                    f"{t.castka:.2f}".replace(".", ","),
-                    t.mena,
-                    t.protiucet,
-                    kategorie,
-                    t.popis,
-                ])
+        for t in transakce:
+            kategorie = t.kategorie if isinstance(t, Vydaj) else "-"
+            zapisovac.writerow([
+                t.typ_operace(),
+                t.datum.strftime("%d.%m.%Y"),
+                t.muj_ucet,
+                f"{t.castka:.2f}".replace(".", ","),
+                t.mena,
+                t.protiucet,
+                kategorie,
+                t.popis,
+            ])
 
 def main():
     zdroje = [
         CsobCsvZdroj("data/csob_bezny1.csv"),
         CsobCsvZdroj("data/csob_sporici1.csv"),
         MonetaCsvZdroj("data/moneta_bezny1.csv"),
-        MonetaCsvZdroj("data/moneta_sporici1.csv")
-    ]
+            ]
 
     surove = []
     for zdroj in zdroje:
@@ -429,8 +416,7 @@ def main():
         elif not nazev_souboru.endswith(".csv"):
             nazev_souboru += ".csv"
 
-        exporter = ExportCsv(roztridene)
-        exporter.exportuj(nazev_souboru)
+        exportuj_csv(roztridene, nazev_souboru)
         print(f"Data byla úspěšně uložena do souboru '{nazev_souboru}'.")
 
     grafy = Vizualizator(roztridene)
