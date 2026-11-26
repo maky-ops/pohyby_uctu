@@ -25,7 +25,6 @@ class SurovaTransakce:
         self.protiucet = protiucet
         self.popis = popis
 
-
 #načtení dat z csv soubroů
 class CsvZdrojDat(ABC):
     @abstractmethod
@@ -113,9 +112,6 @@ class Transakce:
         self.protiucet = surova.protiucet
         self.popis = surova.popis
 
-    def typ_operace(self) -> str:
-        return "NEURČENO"
-
     def __str__(self) -> str:
         return (
             f"[{self.typ_operace():^6}] [{self.datum.strftime('%d.%m.%Y')}] "
@@ -161,12 +157,7 @@ class TridicTransakci:
                 vysledek.append(Vydaj(t))
         return vysledek
 
-class kategorizace(ABC):
-    @abstractmethod
-    def urci_kategorii(self, vydaj: Vydaj) -> str:
-        pass
-
-class KlicovaSlovaKategorizace(kategorizace):
+class KlicovaSlovaKategorizace:
     def __init__(self):
         self.pravidla = {
             "Potraviny": ["albert", "lidl", "globus", "tesco", "penny", "billa", "potraviny", "supermarket"],
@@ -195,14 +186,10 @@ class KlicovaSlovaKategorizace(kategorizace):
                     return kategorie
         return "Ostatní"
 
-class GeminiKategorizace(kategorizace):
+class GeminiKategorizace:
     def __init__(self, api_key: str, povolene_kategorie: list[str]):
         self.client = genai.Client(api_key=api_key)
         self.povolene_kategorie = povolene_kategorie
-
-    def urci_kategorii(self, vydaj: Vydaj) -> str:
-        vysledky = self.urci_kategorie_hromadne([vydaj])
-        return vysledky[0]
 
     def urci_kategorie_hromadne(self, vydaje: list[Vydaj]) -> list[str]:
         seznam_kategorii = ", ".join(self.povolene_kategorie)
