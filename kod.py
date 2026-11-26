@@ -1,6 +1,5 @@
 import csv
 import matplotlib.pyplot as plt
-import requests
 import json
 from google import genai
 from abc import ABC, abstractmethod
@@ -25,13 +24,6 @@ class SurovaTransakce:
         self.mena = mena
         self.protiucet = protiucet
         self.popis = popis
-
-    def __str__(self) -> str:
-        return (
-            f"[{self.datum.strftime('%d.%m.%Y')}] Účet: {self.muj_ucet} | "
-            f"Částka: {self.castka:>9.2f} {self.mena} | "
-            f"Protiúčet: {self.protiucet:<14} | {self.popis}"
-        )
 
 
 #načtení dat z csv soubroů
