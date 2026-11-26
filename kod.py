@@ -74,19 +74,19 @@ class MonetaCsvZdroj(CsvZdrojDat):
             mena=radek["Měna"].strip(),
             protiucet=self._spoj_ucet(radek["Číslo protiúčtu"], radek["Banka protiúčtu"]),
             popis=(radek["Zpráva pro příjemce"].strip() or radek["Popis platby"].strip() 
-                or radek["Název účtu příjemce"].strip())
+                or radek["Název účtu příjemce"].strip()),
         )
 
 def roztrid_transakce (transakce: list[Transakce]) -> None:
-        moje_ucty = {t.muj_ucet for t in transakce}
-        for t in transakce:
-            if t.protiucet in moje_ucty:
-                t.typ = "PŘEVOD"
-            elif t.castka > 0:
-                t.typ = "PŘÍJEM"
-            else:
-                t.typ = "VÝDAJ"
-                t.kategorie = "Nezařazeno"
+    moje_ucty = {t.muj_ucet for t in transakce}
+    for t in transakce:
+        if t.protiucet in moje_ucty:
+            t.typ = "PŘEVOD"
+        elif t.castka > 0:
+            t.typ = "PŘÍJEM"
+        else:
+            t.typ = "VÝDAJ"
+            t.kategorie = "Nezařazeno"
 
 class KlicovaSlovaKategorizace:
     def __init__(self):
@@ -260,7 +260,6 @@ def exportuj_csv(transakce: list[Transakce], cesta_k_souboru: str = "prehled_tra
         zapisovac.writerow(hlavicka)
 
         for t in transakce:
-            kategorie = t.kategorie
             zapisovac.writerow([
                 t.typ,
                 t.datum.strftime("%d.%m.%Y"),
@@ -268,7 +267,7 @@ def exportuj_csv(transakce: list[Transakce], cesta_k_souboru: str = "prehled_tra
                 f"{t.castka:.2f}".replace(".", ","),
                 t.mena,
                 t.protiucet,
-                kategorie,
+                t.kategorie,
                 t.popis,
             ])
 
