@@ -1,3 +1,11 @@
+# Citlivá bankovní data a exporty
+data/
+*.csv
+
+# Dočasné soubory Pythonu a VS Code
+__pycache__/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

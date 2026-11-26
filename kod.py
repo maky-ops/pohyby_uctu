@@ -27,15 +27,20 @@ class SurovaTransakce:
 
 #načtení dat z csv soubroů
 class CsvZdrojDat(ABC):
-    @abstractmethod
-    def nacti_transakce(self) -> list[SurovaTransakce]:
-        pass
     def __init__(self, cesta_k_souboru: str):
         self.cesta_k_souboru = cesta_k_souboru
 
+    @abstractmethod
+    def _zpracuj_radek(self, radek: dict[str, str]) -> SurovaTransakce:
+        pass
+
+    def nacti_transakce(self) -> list[SurovaTransakce]:
+        with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
+            precti = csv.DictReader(soubor, delimiter=";")
+            return [self._zpracuj_radek(radek) for radek in precti]
+    
     def _preved_castku(self, text_castky: str) -> float:
-        ocisteno = text_castky.replace(" ", "").replace(",", ".")
-        return float(ocisteno)
+        return float(text_castky.replace(" ", "").replace(",", "."))
 
     def _spoj_ucet(self, cislo: str, kod_banky: str) -> str:
         cislo = cislo.strip()
@@ -46,61 +51,30 @@ class CsvZdrojDat(ABC):
 
 #přizpůsobení na ČSOB
 class CsobCsvZdroj(CsvZdrojDat):
-    def nacti_transakce(self) -> list[SurovaTransakce]:
-        transakce_seznam = []
-
-        with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
-            ctecky = csv.DictReader(soubor, delimiter=";")
-
-            for radek in ctecky:
-                protiucet = self._spoj_ucet(
-                    radek["číslo protiúčtu"], radek["kód banky protiúčtu"]
-                )
-                popis = radek["zpráva"].strip() or radek["jméno protistrany"].strip()
-
-                t = SurovaTransakce(
-                    id_transakce=radek["ID transakce"].strip(),
-                    muj_ucet=radek["číslo účtu"].strip(),
-                    datum=radek["datum zaúčtování"].strip(),
-                    castka=self._preved_castku(radek["částka"]),
-                    mena=radek["měna"].strip(),
-                    protiucet=protiucet,
-                    popis=popis,
-                )
-                transakce_seznam.append(t)
-
-        return transakce_seznam
+    def _zpracuj_radek(self, radek: dict[str,str]) ->SurovaTransakce:    
+        return SurovaTransakce(
+            id_transakce=radek["ID transakce"].strip(),
+            muj_ucet=radek["číslo účtu"].strip(),
+            datum=radek["datum zaúčtování"].strip(),
+            castka=self._preved_castku(radek["částka"]),
+            mena=radek["měna"].strip(),
+            protiucet=self._spoj_ucet(radek["číslo protiúčtu"], radek["kód banky protiúčtu"]),
+            popis=(radek["zpráva"].strip() or radek["jméno protistrany"].strip()),
+        )
 
 #přizpůsobení na Monetu
 class MonetaCsvZdroj(CsvZdrojDat):
-    def nacti_transakce(self) -> list[SurovaTransakce]:
-        transakce_seznam = []
-
-        with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
-            ctecky = csv.DictReader(soubor, delimiter=";")
-
-            for radek in ctecky:
-                protiucet = self._spoj_ucet(
-                    radek["Číslo protiúčtu"], radek["Banka protiúčtu"]
-                )
-                popis = (
-                    radek["Zpráva pro příjemce"].strip()
-                    or radek["Popis platby"].strip()
-                    or radek["Název účtu příjemce"].strip()
-                )
-
-                t = SurovaTransakce(
-                    id_transakce=radek["Bankovní reference"].strip(),
-                    muj_ucet=radek["Číslo účtu"].strip(),
-                    datum=radek["Odesláno"].strip(),
-                    castka=self._preved_castku(radek["Částka"]),
-                    mena=radek["Měna"].strip(),
-                    protiucet=protiucet,
-                    popis=popis,
-                )
-                transakce_seznam.append(t)
-
-        return transakce_seznam
+    def _zpracuj_radek(self, radek: dict[str,str]) ->SurovaTransakce:    
+        return SurovaTransakce(
+            id_transakce=radek["Bankovní reference"].strip(),
+            muj_ucet=radek["Číslo účtu"].strip(),
+            datum=radek["Odesláno"].strip(),
+            castka=self._preved_castku(radek["Částka"]),
+            mena=radek["Měna"].strip(),
+            protiucet=self._spoj_ucet(radek["Číslo protiúčtu"], radek["Banka protiúčtu"]),
+            popis=(radek["Zpráva pro příjemce"].strip() or radek["Popis platby"].strip() 
+                or radek["Název účtu příjemce"].strip())
+        )
 
 class Transakce:
     def __init__(self, surova: SurovaTransakce):
@@ -141,15 +115,11 @@ class Vydaj(Transakce):
     def __str__(self) -> str:
         return f"{super().__str__()} | Kategorie: {self.kategorie}"
 
-class TridicTransakci:
-    def __init__(self, surove_transakce: list[SurovaTransakce]):
-        self.surove_transakce = surove_transakce
-        self.moje_ucty = {t.muj_ucet for t in surove_transakce}
-
-    def roztrid(self) -> list[Transakce]:
+def roztrid_transakce (surove_transakce: list[SurovaTransakce]) -> list[Transakce]:
+        moje_ucty = {t.muj_ucet for t in surove_transakce}
         vysledek = []
-        for t in self.surove_transakce:
-            if t.protiucet in self.moje_ucty:
+        for t in surove_transakce:
+            if t.protiucet in moje_ucty:
                 vysledek.append(Prevod(t))
             elif t.castka > 0:
                 vysledek.append(Prijem(t))
@@ -254,14 +224,11 @@ class Vizualizator:
 
         plt.figure(figsize=(11, 6))
         sloupce_prijmy = plt.bar(
-            [i - sirka for i in x], prijmy, width=sirka, label="Příjmy", color="#2ecc71"
-        )
+            [i - sirka for i in x], prijmy, width=sirka, label="Příjmy", color="#2ecc71")
         sloupce_vydaje = plt.bar(
-            x, vydaje, width=sirka, label="Výdaje", color="#e74c3c"
-        )
+            x, vydaje, width=sirka, label="Výdaje", color="#e74c3c")
         sloupce_prevody = plt.bar(
-            [i + sirka for i in x], prevody, width=sirka, label="Převody", color="#3498db"
-        )
+            [i + sirka for i in x], prevody, width=sirka, label="Převody", color="#3498db")
 
         plt.bar_label(sloupce_prijmy, fmt="%.0f Kč", padding=3, fontsize=8)
         plt.bar_label(sloupce_vydaje, fmt="%.0f Kč", padding=3, fontsize=8)
@@ -355,8 +322,7 @@ def main():
     for zdroj in zdroje:
         surove.extend(zdroj.nacti_transakce())
 
-    tridic = TridicTransakci(surove)
-    roztridene = tridic.roztrid()
+    roztridene = roztrid_transakce(surove)
     roztridene.sort(key=lambda t: t.datum)
 
     kategorizator = KlicovaSlovaKategorizace()
