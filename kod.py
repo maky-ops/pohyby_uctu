@@ -3,27 +3,28 @@ import matplotlib.pyplot as plt
 import json
 from google import genai
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
+from dataclasses import dataclass
 
-#vytvoření struktury obecné transakce
-class SurovaTransakce:
-    def __init__(
-        self,
-        id_transakce: str,
-        muj_ucet: str,
-        datum: str,
-        castka: float,
-        mena: str,
-        protiucet: str,
-        popis: str,
-    ):
-        self.id_transakce = id_transakce
-        self.muj_ucet = muj_ucet
-        self.datum = datetime.strptime(datum, "%d.%m.%Y").date()
-        self.castka = castka
-        self.mena = mena
-        self.protiucet = protiucet
-        self.popis = popis
+@dataclass
+class Transakce:
+    id_transakce: str
+    muj_ucet: str
+    datum: date
+    castka: float
+    mena: str
+    protiucet: str
+    popis: str
+    typ: str = "NEURČENO"
+    kategorie: str = "-"
+
+    def __str__(self) -> str:
+        zaklad = (
+            f"[{self.typ:^6}] [{self.datum.strftime('%d.%m.%Y')}] "
+            f"Účet: {self.muj_ucet} | Částka: {self.castka:>9.2f} {self.mena} | "
+            f"Protiúčet: {self.protiucet:<14} | {self.popis}"
+        )
+        return f"{zaklad} | Kategorie: {self.kategorie}" if self.typ == "VÝDAJ" else zaklad
 
 #načtení dat z csv soubroů
 class CsvZdrojDat(ABC):
@@ -31,10 +32,10 @@ class CsvZdrojDat(ABC):
         self.cesta_k_souboru = cesta_k_souboru
 
     @abstractmethod
-    def _zpracuj_radek(self, radek: dict[str, str]) -> SurovaTransakce:
+    def _zpracuj_radek(self, radek: dict[str, str]) -> Transakce:
         pass
 
-    def nacti_transakce(self) -> list[SurovaTransakce]:
+    def nacti_transakce(self) -> list[Transakce]:
         with open(self.cesta_k_souboru, mode="r", encoding="utf-8-sig") as soubor:
             precti = csv.DictReader(soubor, delimiter=";")
             return [self._zpracuj_radek(radek) for radek in precti]
@@ -51,11 +52,11 @@ class CsvZdrojDat(ABC):
 
 #přizpůsobení na ČSOB
 class CsobCsvZdroj(CsvZdrojDat):
-    def _zpracuj_radek(self, radek: dict[str,str]) ->SurovaTransakce:    
-        return SurovaTransakce(
+    def _zpracuj_radek(self, radek: dict[str,str]) ->Transakce:    
+        return Transakce(
             id_transakce=radek["ID transakce"].strip(),
             muj_ucet=radek["číslo účtu"].strip(),
-            datum=radek["datum zaúčtování"].strip(),
+            datum=datetime.strptime(radek["datum zaúčtování"].strip(), "%d.%m.%Y").date(),
             castka=self._preved_castku(radek["částka"]),
             mena=radek["měna"].strip(),
             protiucet=self._spoj_ucet(radek["číslo protiúčtu"], radek["kód banky protiúčtu"]),
@@ -64,11 +65,11 @@ class CsobCsvZdroj(CsvZdrojDat):
 
 #přizpůsobení na Monetu
 class MonetaCsvZdroj(CsvZdrojDat):
-    def _zpracuj_radek(self, radek: dict[str,str]) ->SurovaTransakce:    
-        return SurovaTransakce(
+    def _zpracuj_radek(self, radek: dict[str,str]) ->Transakce:    
+        return Transakce(
             id_transakce=radek["Bankovní reference"].strip(),
             muj_ucet=radek["Číslo účtu"].strip(),
-            datum=radek["Odesláno"].strip(),
+            datum=datetime.strptime(radek["Odesláno"].strip(), "%d.%m.%Y").date(),
             castka=self._preved_castku(radek["Částka"]),
             mena=radek["Měna"].strip(),
             protiucet=self._spoj_ucet(radek["Číslo protiúčtu"], radek["Banka protiúčtu"]),
@@ -76,56 +77,16 @@ class MonetaCsvZdroj(CsvZdrojDat):
                 or radek["Název účtu příjemce"].strip())
         )
 
-class Transakce:
-    def __init__(self, surova: SurovaTransakce):
-        self.id_transakce = surova.id_transakce
-        self.muj_ucet = surova.muj_ucet
-        self.datum = surova.datum
-        self.castka = surova.castka
-        self.mena = surova.mena
-        self.protiucet = surova.protiucet
-        self.popis = surova.popis
-
-    def __str__(self) -> str:
-        return (
-            f"[{self.typ_operace():^6}] [{self.datum.strftime('%d.%m.%Y')}] "
-            f"Účet: {self.muj_ucet} | Částka: {self.castka:>9.2f} {self.mena} | "
-            f"Protiúčet: {self.protiucet:<14} | {self.popis}"
-        )
-
-
-class Prevod(Transakce):
-    def typ_operace(self) -> str:
-        return "PŘEVOD"
-
-
-class Prijem(Transakce):
-    def typ_operace(self) -> str:
-        return "PŘÍJEM"
-
-
-class Vydaj(Transakce):
-    def __init__(self, surova: SurovaTransakce):
-        super().__init__(surova)        #kategorizace výdajů
-        self.kategorie = "Nezařazeno"
-
-    def typ_operace(self) -> str:
-        return "VÝDAJ"
-
-    def __str__(self) -> str:
-        return f"{super().__str__()} | Kategorie: {self.kategorie}"
-
-def roztrid_transakce (surove_transakce: list[SurovaTransakce]) -> list[Transakce]:
-        moje_ucty = {t.muj_ucet for t in surove_transakce}
-        vysledek = []
-        for t in surove_transakce:
+def roztrid_transakce (transakce: list[Transakce]) -> None:
+        moje_ucty = {t.muj_ucet for t in transakce}
+        for t in transakce:
             if t.protiucet in moje_ucty:
-                vysledek.append(Prevod(t))
+                t.typ = "PŘEVOD"
             elif t.castka > 0:
-                vysledek.append(Prijem(t))
+                t.typ = "PŘÍJEM"
             else:
-                vysledek.append(Vydaj(t))
-        return vysledek
+                t.typ = "VÝDAJ"
+                t.kategorie = "Nezařazeno"
 
 class KlicovaSlovaKategorizace:
     def __init__(self):
@@ -148,7 +109,7 @@ class KlicovaSlovaKategorizace:
             "Dluhy kamarádům": ["hencl", "dognerová","süssnerová","minařík",],
         }
 
-    def urci_kategorii(self, vydaj: Vydaj) -> str:
+    def urci_kategorii(self, vydaj: Transakce) -> str:
         text = vydaj.popis.lower()
         for kategorie, klicova_slova in self.pravidla.items():
             for slovo in klicova_slova:
@@ -161,7 +122,7 @@ class GeminiKategorizace:
         self.client = genai.Client(api_key=api_key)
         self.povolene_kategorie = povolene_kategorie
 
-    def urci_kategorie_hromadne(self, vydaje: list[Vydaj]) -> list[str]:
+    def urci_kategorie_hromadne(self, vydaje: list[Transakce]) -> list[str]:
         seznam_kategorii = ", ".join(self.povolene_kategorie)
         polozky_text = "\n".join(
             f"{i}: {v.popis}" for i, v in enumerate(vydaje)
@@ -207,11 +168,11 @@ class Vizualizator:
             if mesic not in data_po_mesicich:
                 data_po_mesicich[mesic] = {"prijmy": 0.0, "vydaje": 0.0, "prevody": 0.0}
 
-            if isinstance(t, Prijem):
-                data_po_mesicich[mesic]["prijmy"] += t.castka
-            elif isinstance(t, Vydaj):
+            if t.typ == "PŘÍJEM":
+                 data_po_mesicich[mesic]["prijmy"] += t.castka
+            elif t.typ == "VÝDAJ":
                 data_po_mesicich[mesic]["vydaje"] += abs(t.castka)
-            elif isinstance(t, Prevod) and t.castka > 0:
+            elif t.typ == "PŘEVOD" and t.castka > 0:
                 data_po_mesicich[mesic]["prevody"] += t.castka
 
         mesice = sorted(data_po_mesicich.keys())
@@ -246,7 +207,7 @@ class Vizualizator:
         vydaje_kategorie = {}
 
         for t in self.transakce:
-            if isinstance(t, Vydaj):
+            if t.typ == "VÝDAJ":
                 vydaje_kategorie[t.kategorie] = (
                     vydaje_kategorie.get(t.kategorie, 0.0) + abs(t.castka)
                 )
@@ -299,9 +260,9 @@ def exportuj_csv(transakce: list[Transakce], cesta_k_souboru: str = "prehled_tra
         zapisovac.writerow(hlavicka)
 
         for t in transakce:
-            kategorie = t.kategorie if isinstance(t, Vydaj) else "-"
+            kategorie = t.kategorie
             zapisovac.writerow([
-                t.typ_operace(),
+                t.typ,
                 t.datum.strftime("%d.%m.%Y"),
                 t.muj_ucet,
                 f"{t.castka:.2f}".replace(".", ","),
@@ -318,21 +279,21 @@ def main():
         MonetaCsvZdroj("data/moneta_bezny1.csv"),
             ]
 
-    surove = []
+    roztridene = []
     for zdroj in zdroje:
-        surove.extend(zdroj.nacti_transakce())
+        roztridene.extend(zdroj.nacti_transakce())
 
-    roztridene = roztrid_transakce(surove)
+    roztrid_transakce(roztridene)
     roztridene.sort(key=lambda t: t.datum)
 
     kategorizator = KlicovaSlovaKategorizace()
     for t in roztridene:
-        if isinstance(t, Vydaj):
+        if t.typ == "VÝDAJ":
             t.kategorie = kategorizator.urci_kategorii(t)
 
     ostatni_vydaje = [
-        t for t in roztridene if isinstance(t, Vydaj) and t.kategorie == "Ostatní"
-    ]
+        t for t in roztridene if t.typ == "VÝDAJ" and t.kategorie == "Ostatní"
+        ]
 
     if ostatni_vydaje:
         volba_ai = input(
