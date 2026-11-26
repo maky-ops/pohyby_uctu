@@ -177,17 +177,22 @@ class kategorizace(ABC):
 class KlicovaSlovaKategorizace(kategorizace):
     def __init__(self):
         self.pravidla = {
-            "Potraviny": ["albert", "lidl","globus","tesco","penny","billa","potraviny","supermarket"],
-            "Restaurace":["pizza", "restaurace","hospoda","hospudka","obcerstveni","občerstvení",
-            "mcdonalds","kfc","popeyes","burger king","bar","bistro","kavárna","qerko","restaurant"],
-            "Bydlení": ["nájem", "najem", "elektřina", "voda","suz.cvut.cz"],
-            "Oblečení a Obuv": ["oblečení","newyorker","sinsay","h&m","deichmann","ccc","takko"],
-            "Další nákupy":["alza", "elektroniky","temu","knihobot","luxor","knihkupectvi",
-            "knihkupectvi","pepco","datart","decathlon","optik","ikea","jysk"],
-            "Drogerie":["dm","teta","rossmann","drogerie"],
-            "Doprava a Tankování": ["flix","regiojet","tank","ono","parkoviště","parkoviste","benzina"],
-            "Zábava": ["ticketmaster","ticketportal","canva","nfctron"],
-            "Krása a Zdraví": ["max","lékárna","notino"],
+            "Potraviny": ["albert", "lidl", "globus", "tesco", "penny", "billa", "potraviny", "supermarket"],
+            "Restaurace": ["pizza", "restaurace", "hospoda", "hospudka", "obcerstveni", "občerstvení",
+                "mcdonald's","mcdonalds", "kfc", "popeyes", "burger king", "bar", "bistro", "kavárna", 
+                "qerko", "restaurant",],
+             "Bydlení": ["nájem", "najem", "elektřina", "voda", "suz.cvut.cz"],
+             "Oblečení a Obuv": ["oblečení", "newyorker", "sinsay", "h&m", "deichmann", "ccc", "takko"],
+             "Elektronika": ["alza", "elektroniky","datart","google","canva"],
+             "Další nákupy": [ "temu", "knihobot", "luxor", "knihkupectvi","knihkupectví",
+                "pepco", "ikea", "jysk",],
+            "Doprava a Tankování": ["flix", "regiojet", "tank", "ono", "parkoviště", "parkoviste", "benzina"],
+            "Zábava": ["ticketmaster", "ticketportal", "nfctron",],
+            "Krása a Zdraví": ["dm", "teta", "rossmann", "drogerie",
+                "max", "lékárna", "notino","optik",],
+            "Investice, Finance": ["revolut","vklad","investice","investic",],
+            "Sport":["sportisimo","decathlon","sport","bazén",],
+            "Dluhy kamarádům": ["hencl", "dognerová","süssnerová","minařík",],
         }
 
     def urci_kategorii(self, vydaj: Vydaj) -> str:
